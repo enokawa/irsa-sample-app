@@ -6,10 +6,17 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"log"
+	"net/http"
 	"os"
 )
 
-func listObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+func listObjectsV2() ([]string ,error) {
+	input := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(os.Getenv("S3_BUCKET")),
+		MaxKeys: aws.Int64(5),
+	}
+
 	svc := s3.New(session.New())
 	result, err := svc.ListObjectsV2(input)
 	if err != nil {
@@ -25,21 +32,26 @@ func listObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error
 		}
 	}
 
-	return result, nil
-}
+	var objects []string
 
-func main() {
-	input := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(os.Getenv("S3_BUCKET")),
-		MaxKeys: aws.Int64(5),
+	for _, v := range result.Contents {
+		objects = append(objects, *v.Key)
 	}
 
-	result, err := listObjectsV2(input)
+	return objects, nil
+}
+
+func httpListen(w http.ResponseWriter, r *http.Request) {
+	objects, err := listObjectsV2()
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	for _, v := range result.Contents {
-		fmt.Println(*v.Key)
-	}
+	log.Println(objects)
+	log.Println(r)
+}
+
+func main() {
+	http.HandleFunc("/s3", httpListen)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

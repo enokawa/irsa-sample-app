@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func listObjectsV2() ([]string ,error) {
+func listObjectsV2() ([]string, error) {
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(os.Getenv("S3_BUCKET")),
 		MaxKeys: aws.Int64(5),
